@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Two stacked flashcards with a brush-stroke ensō circle. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:rotation="-12">
+        <path
+            android:fillColor="#F6DCD5"
+            android:pathData="M42,31h24a5,5 0,0 1,5 5v36a5,5 0,0 1,-5 5h-24a5,5 0,0 1,-5 -5v-36a5,5 0,0 1,5 -5z" />
+    </group>
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:rotation="6">
+        <path
+            android:fillColor="#FFFDF8"
+            android:pathData="M43,31h24a5,5 0,0 1,5 5v36a5,5 0,0 1,-5 5h-24a5,5 0,0 1,-5 -5v-36a5,5 0,0 1,5 -5z" />
+        <path
+            android:fillColor="#00000000"
+            android:strokeColor="#1F1A17"
+            android:strokeLineCap="round"
+            android:strokeWidth="4.5"
+            android:pathData="M63,49A9,9 0,1 0,62 59" />
+    </group>
+</vector>

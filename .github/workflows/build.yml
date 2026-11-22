@@ -1,0 +1,84 @@
+# Builds the Kioku app on GitHub's computers. You never need to install anything.
+#
+# - Every push runs the spaced-repetition tests and builds a test APK you can
+#   install on your phone (Actions > latest run > Artifacts > Kioku-test-apk).
+# - If you've added your signing key as repository secrets, it also builds the
+#   signed release APK and the .aab file that Google Play needs.
+# - When you publish a Release on GitHub, the signed APK is attached to it.
+
+name: Build app
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v4
+
+      - name: Run the spaced-repetition tests
+        run: node --test tests/*.test.js
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.11.1"
+
+      - name: Build test APK
+        run: gradle assembleDebug --stacktrace
+
+      - name: Save test APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Kioku-test-apk
+          path: app/build/outputs/apk/debug/*.apk
+
+      - name: Build signed release (only if your key is set up)
+        id: release
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KIOKU_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KIOKU_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KIOKU_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "No signing key in repository secrets yet, so skipping the release build."
+            echo "built=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.jks"
+          export KIOKU_KEYSTORE="$RUNNER_TEMP/release.jks"
+          gradle assembleRelease bundleRelease --stacktrace
+          mkdir -p dist
+          cp app/build/outputs/apk/release/app-release.apk dist/Kioku.apk
+          cp app/build/outputs/bundle/release/app-release.aab dist/Kioku.aab
+          echo "built=true" >> "$GITHUB_OUTPUT"
+
+      - name: Save release files
+        if: steps.release.outputs.built == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Kioku-release
+          path: dist/*
+
+      - name: Attach APK to the GitHub Release
+        if: github.event_name == 'release' && steps.release.outputs.built == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" dist/Kioku.apk --clobber
